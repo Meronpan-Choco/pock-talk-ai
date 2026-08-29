@@ -2,17 +2,26 @@ import { WebSocket } from 'ws';
 import type { ClientToServerMessage, KeywordDefinition } from '@pocktalk/shared';
 import { PockTalkWebSocketServer } from './WebSocketServer';
 
-// 具象クラスをインポート
 import { InMemorySessionStore } from '../session/SessionStore';
 import { ReactionLogicEngine } from '../logic/ReactionLogicEngine';
 import { EmotionEngine } from '../logic/EmotionEngine';
 import { KeywordGuidanceModel } from '../logic/KeywordGuidanceModel';
+
+import { STTPort } from '../ports//STTPort';
+import { ResponseGenerator } from '../ports/ResponseGenerator';
+import { TTSPort } from '../ports/TTSPort';
+import { FillerController } from '../ports/FillerController';
 
 export class SessionOrchestrator {
     private sessionStore: InMemorySessionStore;
     private reactionEngine: ReactionLogicEngine;
     private emotionEngine: EmotionEngine;
     private guidanceModel: KeywordGuidanceModel;
+
+    private sttPort: STTPort;
+    private responseGenerator: ResponseGenerator
+    private ttsPort: TTSPort;
+    private fillerController: FillerController;
 
     // 接続中のWebSocketインスタンスとSessionIDを紐づける管理マップ
     private wsToSessionId = new Map<WebSocket, string>();
@@ -22,8 +31,10 @@ export class SessionOrchestrator {
         this.reactionEngine = new ReactionLogicEngine();
         this.emotionEngine = new EmotionEngine();
         this.guidanceModel = new KeywordGuidanceModel();
-    
-        // TODO: STTPort, TTSPort, ResponseGenerator, FillerController のインスタンス生成もここで行う
+        this.sttPort = new STTPort();
+        this.responseGenerator = new ResponseGenerator();
+        this.ttsPort = new TTSPort();
+        this.fillerController = new FillerController();
     }
 
     /**
