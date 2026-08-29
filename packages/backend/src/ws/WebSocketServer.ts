@@ -4,18 +4,15 @@ import type {
     ServerToClientMessage,
 } from '@pocktalk/shared';
 import { BinaryFrameType } from '@pocktalk/shared';
-
-// TODO: 後ほど実装するSessionOrchestratorの型をインポートして注入する予定ですが、
-// 今回は枠組みの構築のみにとどめます。
-// import { SessionOrchestrator } from './SessionOrchestrator';
+import { SessionOrchestrator } from './SessionOrchestrator';
 
 export class PockTalkWebSocketServer {
     private wss: WebSocketServer;
-    // private orchestrator: SessionOrchestrator;
+    private orchestrator: SessionOrchestrator;
 
     constructor(port: number) {
         this.wss = new WebSocketServer({ port });
-        // this.orchestrator = new SessionOrchestrator();
+        this.orchestrator = new SessionOrchestrator();
 
         this.wss.on('listening', () => {
         console.log(`WebSocket Server is listening on port ${port}`);
@@ -37,8 +34,7 @@ export class PockTalkWebSocketServer {
         });
 
         ws.on('close', () => {
-            console.log('Client disconnected');
-            // TODO: 切断時の処理 (orchestratorへの通知、猶予期間のタイマー起動など)
+            this.orchestrator.handleDisconnect(ws); // orchestratorに切断通知を行い、タイマーなどの処理を委譲
         });
 
         ws.on('error', (error) => {
@@ -51,8 +47,7 @@ export class PockTalkWebSocketServer {
             const message = JSON.parse(text) as ClientToServerMessage;
             console.log(`[WS JSON] Received: ${message.type}`);
 
-            // TODO: message.type に応じて orchestrator の適切なメソッドを呼び出す
-            // 例: this.orchestrator.handleMessage(ws, message);
+            this.orchestrator.handleTextMessage(ws, message); //Orchestratorにテキストメッセージの処理を委譲
         } catch (error) {
             console.error('Failed to parse JSON message:', error);
         }
@@ -71,8 +66,7 @@ export class PockTalkWebSocketServer {
 
         if (frameType === BinaryFrameType.UserMicChunk) {
         // console.log(`[WS BINARY] UserMicChunk - turnId: ${turnId}, size: ${payload.length}`);
-        // TODO: orchestrator経由でSTTポートにチャンクを流し込む
-        // this.orchestrator.handleAudioChunk(turnId, payload);
+        this.orchestrator.handleAudioChunk(ws, turnId, payload); //Orchestratorに音声チャンクの処理を委譲
         } else {
             console.warn(`[WS BINARY] Unknown frame type: ${frameType}`);
         }
